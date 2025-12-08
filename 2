@@ -1,0 +1,21 @@
+Cleaning: trim spaces, replace TABs, normalize date fields, standardize branch formats.
+
+Standardization: apply CLS-specific default values (cust_sor, client_type, system_name, region, department), and format personal attributes to consistent lengths.
+
+Merging: merge profile attributes using UniqueProfileNumber.
+
+Enrichment: add CLS business fields and supplemental metadata.
+
+Deduplication: row numbering to keep only latest/valid personal record.
+
+-------------
+
+Cleaning: trim spaces, replace TABs, normalize dates, clean contract numbers.
+
+Standardization: format loan dates; pad amounts; standardize obligation, lessor, and obligor numbers.
+
+Enrichment: assign CLS loan attributes (loan type, flags, assignment unit, line of business, company).
+
+Merging: derive obligation fields from contract number; merge with profile.
+
+Deduplication: keep only latest/valid loan record.
