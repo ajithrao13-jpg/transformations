@@ -1,12 +1,11 @@
 +------------------------------+
 | 1. Source Extraction         |
-| (CLS_T_SRC_OLE_CLSLeases)    |
+|    (SRC_CLS_LEASES)          |
 +--------------+---------------+
                |
                v
 +------------------------------+
-| 2. Profiling Rules           |
-| CLS_T_CSPL_ProfilingRules    |
+| 2. Profiling Rules           |     
 | - Missing contract_number    |
 | - Missing customer_name      |
 +-------------+----------------+
@@ -15,22 +14,17 @@
         +--------------------+----------------------+
         |                                           |                                                 
         v                                           v
-
-+-------------------------------+     +----------------------------------+
-| 3a. Profile Numbers           |     | 3b. Obligation Numbers           |
-| CLS_T_CSPL_FetchUniquePN      |     | CLS_T_CSPL_FetchUniqueOblgNo     |
-| Conditions:                   |     | Condition:                       |
-| - flag_pn_nonduplicate        |     | - flag_oblgnum_nonduplicate      |
-| - flag_not_available_in_personal |  |                                  |
-+-------------+-----------------+     +--------------+-------------------+
-              |                                      |
-              |                                      |
-              v                                      v
-+-------------------------------+     +----------------------------------+
-| 4a. Personal Transformations  |     | 4b. Loan/Account Transformations |
-| - PersonalTransformation      |     | - LoanAccountsTransformation     |
-| - ReplaceTabs                 |     | - Acquisition/Origination Lookup |
-| - DST_OLE_Personal            |     | - DST_OLE_LoanAccounts           |
-+-------------------------------+     +----------------------------------+
++----------------------------------+       +----------------------------------+
+| 3a. Profile Numbers              |       | 3b. Obligation Numbers           |
+| Conditions:                      |       | Condition:                       |
+| - flag_pn_nonduplicate           |       | - flag_oblgnum_nonduplicate      |
+| - flag_not_available_in_personal |       |                                  |
++-------------+--------------------+       +--------------+-------------------+
+              |                                        |
+              |                                        |
+              v                                        v
++-------------------------------+       +----------------------------------+
+| 4a. Personal Transformations  |       | 4b. Loan/Account Transformations |
++-------------------------------+       +----------------------------------+
 
 
