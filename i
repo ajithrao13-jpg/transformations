@@ -1,0 +1,14 @@
+Cleaning:
+Trim account and amount fields, handle NULL/blank values, and default missing numeric and date fields.
+
+Standardization:
+Format monetary amounts to fixed 15-digit numeric strings, enforce indicator flags (Y/N/U), standardize deposit type, term codes, and system identifiers to IDS.
+
+Enrichment:
+Derive deposit policy numbers, hold verification indicators, term descriptions, and system metadata.
+
+Normalization:
+Convert legacy 7-digit dates to 8-digit YYYYMMDD format and normalize negative and zero-filled values.
+
+Validation:
+Apply business rules for unknown, invalid, and special-case pledge and date conditions.
