@@ -19,3 +19,17 @@ Capture execution metadata and primary key details for records failing pledge or
 Identify and log the source error column (curr_balance or current_pledge_amt) with a standard error description.
 
 Route invalid records to the error output for audit and reporting without stopping the ETL flow.
+---------------------------------------------
+Populate execution and audit metadata (execution datetime, execution GUID, package ID) for failed records.
+
+Assign contextual error descriptions based on data conditions (e.g., missing or invalid account details from IDS source).
+
+Capture system, application, entity, and primary key details to support error tracking and downstream reconciliation.
+----------------------------------------------
+Union Output
+
+Component: IDS_T_UALL_ErrorData
+Combines error outputs from multiple error-handling paths (invalid pledge amount, error description, and other derived error records).
+Destination: [dbo].[IDS_T_RCNT_ErrorData] / downstream failed-record handling.
+
+Consolidated fields include execution metadata (execution datetime, execution GUID, package ID), system and application identifiers, data entity name, primary key column name and value, error description, and source error column details.
