@@ -4,51 +4,30 @@
 +-------------------------------+------------------
               |                                   |
               v                                   v
-+-------------------------------+        +-------------------------------+
-| 2a. Valid Records             |        | 2b. Invalid Records           |
-| acct NOT NULL / NOT blank     |        | acct IS NULL / blank          |
-+-------------------------------+        +---------------------------------+
-        |                        \                                          \
-        |                         \                                          \
-        v                          \                                          \
-+-------------------------------+    ------->+-------------------------------+ \
-| 3a. Transformation Rules      |            | 3b. Amount Conversion Error   |  \
-| IDS_T_DER_TransformationRules |            | IDS_T_DER_CurrentPledgeAmount |   \
-+-------------------------------+            +-------------------------------+    \
-        |              |                                                           \
-        |              |                                                            \
-        v              v                                                             v 
-+-------------------+   +---------------------------+          +-------------------------------+
-| 6. Load Master    |   | 5. Date Conversion        |          | 8. Union Error Output         |
-| IDS_T_DST_OLE_    |   | IDS_T_DCNV_ConvertingDate |          | IDS_T_UALL_ErrorData          |
-| MASTER            |   +---------------------------+          +-------------------------------+
-+-------------------+               |
-                                    v
++-------------------------------+        +---------------------------------------+
+| 2a. Valid Records             |        | 2b. Invalid Records                   |
+| acct NOT NULL / NOT blank     |        | acct IS NULL / blank                  |
++-------------------------------+        +---------------------------------------+
+        |                        \                                               |
+        |                         \                                              |
+        v                          \                                             |
++-------------------------------+    -------->+-------------------------------+  |
+| 3a. Transformation Rules      |            | 3b. Amount Conversion Error   |   |
+| IDS_T_DER_TransformationRules |            | IDS_T_DER_CurrentPledgeAmount |   |
++-------------------------------+            +-------------------------------+   |  
+        |                  |                                           |         |   
+        |                  |                                           |         |    
+        v                  v                                           v         v 
++---------------------+   +---------------------------+          +-------------------------------+
+| Load Master         |   | Date Conversion           |          | Union Error Output            |
+| IDS_T_DST_OLE_      |   | IDS_T_DCNV_ConvertingDate |          | IDS_T_UALL_ErrorData          |
+| MASTER              |   +---------------------------+          +-------------------------------+
++---------------------+               |
+                                      v
                           +-------------------------+
-                          | 7. Load Deposits        |
+                          | Load Deposits           |
                           | IDS_T_DST_OLE_DEPOSITS  |
                           +-------------------------+
 
 
-+-------------------------------+
-| 3b. Amount Conversion Error   |
-| IDS_T_DER_CurrentPledgeAmount |
-+-------------------------------+
-              |
-              v
-+-------------------------------+
-| 8. Union Error Output         |
-| IDS_T_UALL_ErrorData          |
-+-------------------------------+
 
-
-+-------------------------------+
-| 2b. Invalid Records           |
-| acct IS NULL / blank          |
-+-------------------------------+
-              |
-              v
-+-------------------------------+
-| 8. Union Error Output         |
-| IDS_T_UALL_ErrorData          |
-+-------------------------------+
