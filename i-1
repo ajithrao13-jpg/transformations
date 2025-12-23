@@ -11,18 +11,18 @@
         |                        \                                               |
         |                         \                                              |
         v                          \                                             |
-+-------------------------------+    -------->+-------------------------------+  |
-| 3a. Transformation Rules      |            | 3b. Amount Conversion Error   |   |
-| IDS_T_DER_TransformationRules |            | IDS_T_DER_CurrentPledgeAmount |   |
-+-------------------------------+            +-------------------------------+   |  
++--------------------------------+   ----->+----------------------------------+  |
+|3a.IDS_T_DER_TransformationRules|         | 3b. IDS_T_DER_CurrentPledgeAmount|  |  
+|                                |         |                                  |  |
++--------------------------------+         +----------------------------------+  |  
         |                  |                                           |         |   
         |                  |                                           |         |    
         v                  v                                           v         v 
 +---------------------+   +---------------------------+          +-------------------------------+
 | Load Master         |   | Date Conversion           |          | Union Error Output            |
-| IDS_T_DST_OLE_      |   | IDS_T_DCNV_ConvertingDate |          | IDS_T_UALL_ErrorData          |
-| MASTER              |   +---------------------------+          +-------------------------------+
-+---------------------+               |
+| IDS_T_DST_OLE_MASTER|   | IDS_T_DCNV_ConvertingDate |          | IDS_T_UALL_ErrorData          |
++---------------------+   +---------------------------+          +-------------------------------+
+                                      |
                                       v
                           +-------------------------+
                           | Load Deposits           |
