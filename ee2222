@@ -4,3 +4,77 @@ Standardization: Pad profile_number and rpn with leading zeros to 13 digits and 
 
 Derivation: Set system and client defaults (system_name = ERM, client_type = N), derive contact types from LAN IDs, and apply regulatory flags.
 
+Profile Number formatting: Standardizes profile numbers by adding a PN prefix and padding with leading zeros to a fixed length.
+
+RPN formatting: Converts RPN into a standardized PN-prefixed value with leading zeros for consistency.
+
+Address Line 1 cleanup: Removes tab characters and extra spaces to keep address data clean.
+
+Address Line 2 cleanup: Cleans formatting issues by trimming spaces and removing tabs.
+
+City cleanup: Standardizes city values by removing tabs and trimming whitespace.
+
+State code derivation: Derives a valid state code for US and Canada records; sets blank for other countries.
+
+
+DBA cleanup: Cleans DBA name by removing tabs and extra spaces.
+
+reg_o == "2" ? "Y" : "N"
+Sets regulatory flag to Y when condition is met; otherwise N.
+
+(Excluded rule)
+Rule not used in current ERM processing.
+
+TRIM(REPLACE(rl_lan_id,"\t",""))
+Cleans relationship LAN ID by removing tabs and extra spaces.
+
+TRIM(REPLACE(department_description,"\t",""))
+Cleans department description by removing tabs and trimming spaces.
+
+TRIM(REPLACE(region_description,"\t",""))
+Cleans region description by removing tabs and extra spaces.
+
+(Excluded rule)
+Rule excluded from ERM processing.
+
+TRIM(REPLACE(rm_lan_id,"\t",""))
+Cleans RM LAN ID by removing tabs and trimming spaces.
+
+TRIM(REPLACE(profile_name,"\t",""))
+Standardizes profile name by removing tabs and extra spaces.
+
+TRIM(REPLACE(postal_area_code,"\t",""))
+Cleans postal/ZIP code by removing tabs and spaces.
+
+REPLACE(TRIM(REPLACE(tax_id,"\t","")),"-","")
+Removes spaces, tabs, and hyphens from tax ID.
+
+(DT_STR,10,1252)"ERM"
+Sets system name to ERM.
+
+TRIM(REPLACE(profile_name,"\t",""))
+Cleans profile name by removing tabs and extra spaces.
+
+TRIM(REPLACE(postal_area_code,"\t",""))
+Cleans postal/ZIP code by removing tabs and spaces.
+
+REPLACE(TRIM(REPLACE(tax_id,"\t","")),"-","")
+Removes spaces, tabs, and hyphens from tax ID.
+
+(DT_STR,10,1252)"ERM"
+Sets system name to ERM.
+
+Credit contact type derivation (rm_lan_id)
+Derives credit contact type based on RM LAN ID prefix.
+
+Relationship contact type derivation (rl_lan_id)
+Derives relationship contact type based on RL LAN ID prefix.
+
+(DT_STR,1,1252)"N"
+Sets client type default to N.
+
+(DT_STR,30,1252)(ISNULL(organization_type) ? "" : organization_type)
+Passes organization type when available; defaults to blank.
+
+Country code lookup join
+Derives standardized country code using reference lookup.
