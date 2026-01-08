@@ -1,0 +1,6 @@
+Cleaning: Trim text fields and replace tab characters with spaces for all address, name, and descriptive columns.
+
+Standardization: Pad profile_number and rpn with leading zeros to 13 digits and prefix with PN; normalize tax_id, state_code, and organization type values.
+
+Derivation: Set system and client defaults (system_name = ERM, client_type = N), derive contact types from LAN IDs, and apply regulatory flags.
+
