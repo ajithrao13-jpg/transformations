@@ -12,3 +12,25 @@ LEAD(lastmodifieddate) OVER(PARTITION BY ID ORDER BY[lastmodifieddate] ASC)  AS 
 
 FROM (SELECT * ,RANK() OVER (PARTITION BY ID ORDER BY LASTMODIFIEDDATE ASC) RNK FROM "EDP_DB_UAT"."TD_HISTORY"."DL_CASE")
 ));
+
+-----------------------------------------
+DELETE FROM my_table
+WHERE (record_id, load_date) NOT IN (
+    SELECT record_id, load_date
+    FROM (
+        SELECT record_id,
+               load_date,
+               ROW_NUMBER() OVER (PARTITION BY record_id ORDER BY load_date DESC) AS rn
+        FROM my_table
+    ) sub
+    WHERE rn <= 1
+       OR load_date >= CURRENT_DATE - INTERVAL '7 days'
+);
+
+--------------------------------------
+What this SQL Does (Simple Explanation)
+	•	Keeps latest record per business key
+	•	Keeps any changes made in the last 7 days
+	•	Deletes:
+	•	Older versions beyond 7 days
+	•	Unnecessary historical records
