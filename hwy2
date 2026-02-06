@@ -1,0 +1,276 @@
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+public class FixedWidthDiff {
+
+    static final String YESTERDAY_PATH = "input/yesterday.txt";
+    static final String TODAY_PATH     = "input/today.txt";
+    static final String OUTPUT_DIR     = "output";
+
+    static final String[] COL_NAMES = {
+            "loan_officer","region","special_assets_indicator","current_balance","contract_number","customer_name",
+            "customer_address1","customer_address2","customer_address3","customer_city","customer_state","customer_zip_code",
+            "profile_number","pd_grade","lgd_grade","contract_type","date_into_system","commencement_date","disposition_date",
+            "gross_contract","program_type","asset_description","renewal_status","bic_pledge_results","branch",
+            "paid_indicator","paid_indicator_date"
+    };
+
+    static final int[] COL_STARTS = {
+            1-1,11-1,14-1,25-1,39-1,53-1,103-1,133-1,163-1,193-1,223-1,226-1,236-1,246-1,250-1,254-1,
+            256-1,264-1,272-1,280-1,294-1,298-1,318-1,319-1,321-1,326-1,327-1
+    };
+
+    static final int KEY_COL_INDEX = 4; // contract_number
+
+    public static void main(String[] args) throws Exception {
+        Files.createDirectories(Paths.get(OUTPUT_DIR));
+
+        Map<String, String[]> yesterday = loadFixedWidth(YESTERDAY_PATH);
+        Map<String, String[]> today = loadFixedWidth(TODAY_PATH);
+
+        Set<String> allKeys = new HashSet<>();
+        allKeys.addAll(yesterday.keySet());
+        allKeys.addAll(today.keySet());
+
+        List<String> sortedKeys = new ArrayList<>(allKeys);
+        Collections.sort(sortedKeys);
+
+        List<SummaryRow> summary = new ArrayList<>();
+        List<DetailRow> details = new ArrayList<>();
+
+        int newCount = 0, deletedCount = 0, updatedCount = 0;
+
+        for (String key : sortedKeys) {
+            if (!yesterday.containsKey(key)) {
+                newCount++;
+                summary.add(new SummaryRow(key, "NEW", "", "", 0));
+                // Optional: include full row as details
+                String[] tRow = today.get(key);
+                for (int i = 0; i < COL_NAMES.length; i++) {
+                    details.add(new DetailRow(key, "NEW", COL_NAMES[i], "", safe(tRow[i])));
+                }
+                continue;
+            }
+
+            if (!today.containsKey(key)) {
+                deletedCount++;
+                summary.add(new SummaryRow(key, "DELETED", "", "", 0));
+                String[] yRow = yesterday.get(key);
+                for (int i = 0; i < COL_NAMES.length; i++) {
+                    details.add(new DetailRow(key, "DELETED", COL_NAMES[i], safe(yRow[i]), ""));
+                }
+                continue;
+            }
+
+            String[] yRow = yesterday.get(key);
+            String[] tRow = today.get(key);
+
+            int changeCount = 0;
+            for (int i = 0; i < COL_NAMES.length; i++) {
+                String oldVal = safe(yRow[i]);
+                String newVal = safe(tRow[i]);
+                if (!oldVal.equals(newVal)) {
+                    changeCount++;
+                    details.add(new DetailRow(key, "UPDATED", COL_NAMES[i], oldVal, newVal));
+                }
+            }
+
+            if (changeCount > 0) {
+                updatedCount++;
+                // Add a short “preview” field so summary is easy to skim
+                String preview = buildPreview(details, key);
+                summary.add(new SummaryRow(key, "UPDATED", safe(yRow[0]), safe(tRow[0]), changeCount)); // loan_officer before/after as example
+                // If you want preview in CSV, we can add another column; keeping it simple for now
+            }
+        }
+
+        // Write reports
+        writeSummaryCsv(Paths.get(OUTPUT_DIR, "change_summary.csv"), summary);
+        writeDetailsCsv(Paths.get(OUTPUT_DIR, "change_details.csv"), details);
+        writeHtmlReport(Paths.get(OUTPUT_DIR, "report.html"), newCount, deletedCount, updatedCount, summary, details);
+
+        System.out.println("Reports generated in: " + Paths.get(OUTPUT_DIR).toAbsolutePath());
+        System.out.println(" - change_summary.csv");
+        System.out.println(" - change_details.csv");
+        System.out.println(" - report.html");
+        System.out.println("\nCounts: NEW=" + newCount + " DELETED=" + deletedCount + " UPDATED=" + updatedCount);
+    }
+
+    // ---------- Data structures ----------
+    static class SummaryRow {
+        String contractNumber;
+        String changeType;
+        String loanOfficerOld;
+        String loanOfficerNew;
+        int changedFields;
+
+        SummaryRow(String contractNumber, String changeType, String loanOfficerOld, String loanOfficerNew, int changedFields) {
+            this.contractNumber = contractNumber;
+            this.changeType = changeType;
+            this.loanOfficerOld = loanOfficerOld;
+            this.loanOfficerNew = loanOfficerNew;
+            this.changedFields = changedFields;
+        }
+    }
+
+    static class DetailRow {
+        String contractNumber;
+        String changeType;
+        String columnName;
+        String oldValue;
+        String newValue;
+
+        DetailRow(String contractNumber, String changeType, String columnName, String oldValue, String newValue) {
+            this.contractNumber = contractNumber;
+            this.changeType = changeType;
+            this.columnName = columnName;
+            this.oldValue = oldValue;
+            this.newValue = newValue;
+        }
+    }
+
+    // ---------- CSV writers ----------
+    private static void writeSummaryCsv(Path path, List<SummaryRow> rows) throws IOException {
+        try (BufferedWriter w = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            w.write("contract_number,change_type,loan_officer_old,loan_officer_new,changed_fields\n");
+            for (SummaryRow r : rows) {
+                w.write(csv(r.contractNumber) + "," + csv(r.changeType) + "," + csv(r.loanOfficerOld) + "," + csv(r.loanOfficerNew) + "," + r.changedFields + "\n");
+            }
+        }
+    }
+
+    private static void writeDetailsCsv(Path path, List<DetailRow> rows) throws IOException {
+        try (BufferedWriter w = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            w.write("contract_number,change_type,column_name,old_value,new_value\n");
+            for (DetailRow r : rows) {
+                w.write(csv(r.contractNumber) + "," + csv(r.changeType) + "," + csv(r.columnName) + "," + csv(r.oldValue) + "," + csv(r.newValue) + "\n");
+            }
+        }
+    }
+
+    private static String csv(String s) {
+        if (s == null) return "";
+        String x = s.replace("\"", "\"\"");
+        if (x.contains(",") || x.contains("\"") || x.contains("\n")) return "\"" + x + "\"";
+        return x;
+    }
+
+    // ---------- HTML report ----------
+    private static void writeHtmlReport(Path path, int newCount, int deletedCount, int updatedCount,
+                                        List<SummaryRow> summary, List<DetailRow> details) throws IOException {
+
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        // Group details by contract number for easy browsing
+        Map<String, List<DetailRow>> detailsByKey = new LinkedHashMap<>();
+        for (DetailRow d : details) {
+            detailsByKey.computeIfAbsent(d.contractNumber, k -> new ArrayList<>()).add(d);
+        }
+
+        try (BufferedWriter w = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            w.write("<!doctype html><html><head><meta charset='utf-8'>");
+            w.write("<title>Daily File Change Report</title>");
+            w.write("<style>");
+            w.write("body{font-family:Arial, sans-serif; margin:20px;}");
+            w.write(".cards{display:flex; gap:12px; margin:12px 0 20px 0;}");
+            w.write(".card{padding:12px 14px; border:1px solid #ddd; border-radius:10px; min-width:160px;}");
+            w.write("table{border-collapse:collapse; width:100%; margin-top:10px;}");
+            w.write("th,td{border:1px solid #ddd; padding:8px; text-align:left; font-size:14px;}");
+            w.write("th{background:#f5f5f5;}");
+            w.write("details{margin:10px 0;}");
+            w.write(".tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #ccc;}");
+            w.write("</style></head><body>");
+
+            w.write("<h2>Daily File Change Report</h2>");
+            w.write("<div>Generated: " + esc(ts) + "</div>");
+            w.write("<div class='cards'>");
+            w.write("<div class='card'><div class='tag'>NEW</div><h3>" + newCount + "</h3></div>");
+            w.write("<div class='card'><div class='tag'>DELETED</div><h3>" + deletedCount + "</h3></div>");
+            w.write("<div class='card'><div class='tag'>UPDATED</div><h3>" + updatedCount + "</h3></div>");
+            w.write("</div>");
+
+            w.write("<h3>Summary</h3>");
+            w.write("<table><thead><tr>");
+            w.write("<th>contract_number</th><th>change_type</th><th>changed_fields</th><th>loan_officer_old</th><th>loan_officer_new</th>");
+            w.write("</tr></thead><tbody>");
+            for (SummaryRow r : summary) {
+                w.write("<tr>");
+                w.write("<td>" + esc(r.contractNumber) + "</td>");
+                w.write("<td>" + esc(r.changeType) + "</td>");
+                w.write("<td>" + r.changedFields + "</td>");
+                w.write("<td>" + esc(r.loanOfficerOld) + "</td>");
+                w.write("<td>" + esc(r.loanOfficerNew) + "</td>");
+                w.write("</tr>");
+            }
+            w.write("</tbody></table>");
+
+            w.write("<h3>Details (click to expand)</h3>");
+            for (Map.Entry<String, List<DetailRow>> e : detailsByKey.entrySet()) {
+                String key = e.getKey();
+                List<DetailRow> rows = e.getValue();
+                String type = rows.isEmpty() ? "" : rows.get(0).changeType;
+
+                w.write("<details>");
+                w.write("<summary><b>" + esc(key) + "</b> &nbsp; <span class='tag'>" + esc(type) + "</span> &nbsp; (" + rows.size() + " fields)</summary>");
+                w.write("<table><thead><tr><th>column</th><th>old</th><th>new</th></tr></thead><tbody>");
+                for (DetailRow d : rows) {
+                    w.write("<tr>");
+                    w.write("<td>" + esc(d.columnName) + "</td>");
+                    w.write("<td>" + esc(d.oldValue) + "</td>");
+                    w.write("<td>" + esc(d.newValue) + "</td>");
+                    w.write("</tr>");
+                }
+                w.write("</tbody></table>");
+                w.write("</details>");
+            }
+
+            w.write("</body></html>");
+        }
+    }
+
+    private static String esc(String s) {
+        if (s == null) return "";
+        return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                .replace("\"","&quot;").replace("'","&#39;");
+    }
+
+    private static String buildPreview(List<DetailRow> details, String key) {
+        // Not required now; keeping placeholder if you want a preview column later.
+        return "";
+    }
+
+    // ---------- Parsing fixed-width ----------
+    private static Map<String, String[]> loadFixedWidth(String path) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(path));
+        Map<String, String[]> map = new HashMap<>();
+
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
+            String[] cols = parseFixedWidth(line);
+            String key = safe(cols[KEY_COL_INDEX]);
+            if (key.isEmpty()) continue;
+            map.put(key, cols);
+        }
+        return map;
+    }
+
+    private static String[] parseFixedWidth(String line) {
+        String[] out = new String[COL_NAMES.length];
+        for (int i = 0; i < COL_STARTS.length; i++) {
+            int start = COL_STARTS[i];
+            int end = (i == COL_STARTS.length - 1) ? line.length() : COL_STARTS[i + 1];
+            if (start >= line.length()) { out[i] = ""; continue; }
+            end = Math.min(end, line.length());
+            out[i] = line.substring(start, end).trim();
+        }
+        return out;
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s.trim();
+    }
+}
