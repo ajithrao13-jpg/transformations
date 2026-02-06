@@ -1,0 +1,172 @@
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+
+public class FixedWidthDiff {
+
+    static final String YESTERDAY_PATH = "input/yesterday.txt";
+    static final String TODAY_PATH     = "input/today.txt";
+
+    // Column names in the exact order you provided
+    static final String[] COL_NAMES = {
+            "loan_officer",
+            "region",
+            "special_assets_indicator",
+            "current_balance",
+            "contract_number",          // <-- KEY
+            "customer_name",
+            "customer_address1",
+            "customer_address2",
+            "customer_address3",
+            "customer_city",
+            "customer_state",
+            "customer_zip_code",
+            "profile_number",
+            "pd_grade",
+            "lgd_grade",
+            "contract_type",
+            "date_into_system",
+            "commencement_date",
+            "disposition_date",
+            "gross_contract",
+            "program_type",
+            "asset_description",
+            "renewal_status",
+            "bic_pledge_results",
+            "branch",
+            "paid_indicator",
+            "paid_indicator_date"
+    };
+
+    // Starts you gave are 1-based; convert to 0-based for Java by subtracting 1
+    static final int[] COL_STARTS = {
+            1  - 1,   // loan_officer starts 1
+            11 - 1,   // region starts 11
+            14 - 1,   // special_assets_indicator starts 14
+            25 - 1,   // current_balance starts 25
+            39 - 1,   // contract_number starts 39
+            53 - 1,   // customer_name starts 53
+            103 - 1,  // customer_address1 starts 103
+            133 - 1,  // customer_address2 starts 133
+            163 - 1,  // customer_address3 starts 163
+            193 - 1,  // customer_city starts 193
+            223 - 1,  // customer_state starts 223
+            226 - 1,  // customer_zip_code starts 226
+            236 - 1,  // profile_number starts 236
+            246 - 1,  // pd_grade starts 246
+            250 - 1,  // lgd_grade starts 250
+            254 - 1,  // contract_type starts 254
+            256 - 1,  // date_into_system starts 256
+            264 - 1,  // commencement_date starts 264
+            272 - 1,  // disposition_date starts 272
+            280 - 1,  // gross_contract starts 280
+            294 - 1,  // program_type starts 294
+            298 - 1,  // asset_description starts 298
+            318 - 1,  // renewal_status starts 318
+            319 - 1,  // bic_pledge_results starts 319
+            321 - 1,  // branch starts 321
+            326 - 1,  // paid_indicator starts 326
+            327 - 1   // paid_indicator_date starts 327
+    };
+
+    // contract_number is the 5th item above (0-based index 4)
+    static final int KEY_COL_INDEX = 4;
+
+    public static void main(String[] args) throws Exception {
+        Map<String, String[]> yesterday = loadFixedWidth(YESTERDAY_PATH);
+        Map<String, String[]> today = loadFixedWidth(TODAY_PATH);
+
+        Set<String> allKeys = new HashSet<>();
+        allKeys.addAll(yesterday.keySet());
+        allKeys.addAll(today.keySet());
+
+        List<String> sortedKeys = new ArrayList<>(allKeys);
+        Collections.sort(sortedKeys);
+
+        int newCount = 0, deletedCount = 0, updatedCount = 0;
+
+        for (String key : sortedKeys) {
+            if (!yesterday.containsKey(key)) {
+                newCount++;
+                System.out.println("\n" + key + " - NEW");
+                printRow(today.get(key));
+                continue;
+            }
+
+            if (!today.containsKey(key)) {
+                deletedCount++;
+                System.out.println("\n" + key + " - DELETED");
+                printRow(yesterday.get(key));
+                continue;
+            }
+
+            String[] yRow = yesterday.get(key);
+            String[] tRow = today.get(key);
+
+            List<String> changes = new ArrayList<>();
+            for (int i = 0; i < COL_NAMES.length; i++) {
+                String oldVal = safe(yRow[i]);
+                String newVal = safe(tRow[i]);
+                if (!oldVal.equals(newVal)) {
+                    changes.add(COL_NAMES[i] + ": '" + oldVal + "' \u2192 '" + newVal + "'");
+                }
+            }
+
+            if (!changes.isEmpty()) {
+                updatedCount++;
+                System.out.println("\n" + key + " - UPDATED");
+                for (String c : changes) System.out.println("  " + c);
+            }
+        }
+
+        System.out.println("\n==== SUMMARY ====");
+        System.out.println("NEW: " + newCount);
+        System.out.println("DELETED: " + deletedCount);
+        System.out.println("UPDATED: " + updatedCount);
+    }
+
+    private static Map<String, String[]> loadFixedWidth(String path) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(path));
+        Map<String, String[]> map = new HashMap<>();
+
+        for (String line : lines) {
+            if (line.trim().isEmpty()) continue;
+
+            String[] cols = parseFixedWidth(line);
+
+            String key = safe(cols[KEY_COL_INDEX]);
+            if (key.isEmpty()) continue;
+
+            // If duplicate keys exist in the same file, last one wins.
+            map.put(key, cols);
+        }
+        return map;
+    }
+
+    private static String[] parseFixedWidth(String line) {
+        String[] out = new String[COL_NAMES.length];
+
+        for (int i = 0; i < COL_STARTS.length; i++) {
+            int start = COL_STARTS[i];
+            int end = (i == COL_STARTS.length - 1) ? line.length() : COL_STARTS[i + 1];
+
+            if (start >= line.length()) {
+                out[i] = "";
+                continue;
+            }
+            end = Math.min(end, line.length());
+            out[i] = line.substring(start, end).trim();
+        }
+        return out;
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private static void printRow(String[] row) {
+        for (int i = 0; i < COL_NAMES.length; i++) {
+            System.out.println("  " + COL_NAMES[i] + " = " + safe(row[i]));
+        }
+    }
+}
