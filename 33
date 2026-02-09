@@ -1,0 +1,16 @@
++--------------------------------------------------+
+|        1. Database Read                          |
+|--------------------------------------------------|
+| - STOC ETL connects directly to tables           |
+| - No transmitted file                            |
+| - Data pulled directly from remote server        |
+| - Read required CDR data                         |
++--------------------------------------------------+
+                         |
+                         v
++--------------------------------------------------+
+|        2. Profile Number Transformation          |
+|--------------------------------------------------|
+| - CDR data used to transform Profile Number      |
+| - Supports CLN record processing                 |
++--------------------------------------------------+
